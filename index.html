@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en-US">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Test</title>
+		<style>
+			html,
+			body {
+				margin: 0;
+				padding: 0;
+			}
+			.site__content {
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				height: 100vh;
+				background: #3777bf;
+			}
+			.timer__time {
+				display: flex;
+				justify-content: center;
+				margin: 0 0 2rem;
+			}
+			.timer__hour,
+			.timer__min,
+			.timer__sec {
+				width: 3rem;
+				padding: 0.3rem 0.5rem;
+				background: #fff;
+				font: 1.5rem Arial, sans-serif;
+				text-align: center;
+			}
+			.timer__col {
+				padding: 0.3rem;
+			}
+			.timer__controls {
+				display: flex;
+				justify-content: center;
+			}
+			.btn {
+				margin: 0 0.2rem;
+				padding: 0.5rem 1.5rem;
+				background: #e39301;
+				box-shadow: none;
+				border: none;
+				font: 700 1rem Arial, sans-serif;
+				color: #fff;
+				cursor: pointer;
+			}
+			.timer__message {
+				height: 3rem;
+				margin: 1rem 0 0;
+				font: 400 1.5rem/1 Arial, sans-serif;
+				text-align: center;
+				color: #fff;
+			}
+		</style>
+	</head>
+
+	<body>
+		<div class="site">
+			<div class="site__content">
+				<div class="timer" id="timer">
+					<div class="timer__time">
+						<div class="timer__hour">00</div>
+						<div class="timer__col">:</div>
+						<div class="timer__min">15</div>
+						<div class="timer__col">:</div>
+						<div class="timer__sec">00</div>
+					</div>
+					<div class="timer__controls">
+						<button class="timer__stop btn">Stop</button>
+						<button class="timer__run btn">Run</button>
+						<button class="timer__clear btn">Clear</button>
+						<button class="timer__plus btn">+<span>10</span> sec</button>
+						<button class="timer__minus btn">-<span>10</span> sec</button>
+					</div>
+					<div class="timer__message"></div>
+				</div>
+			</div>
+		</div>
+
+		<script>
+			const settings = {
+				hours: 0,
+				minutes: 15,
+				seconds: 0,
+				text: 'Time is over!',
+				add: 10
+			};
+			let init; // for setInterval
+
+			let getTimer = ( id ) => {
+				const timer = document.getElementById( id );
+				const elementNames = [
+					'hour',
+					'min',
+					'sec',
+					'plus',
+					'minus',
+					'run',
+					'stop',
+					'clear',
+					'message'
+				];
+				// Returns an array of dom elements like timer.querySelector( '.timer__message' ).
+				const domElements = elementNames.map( ( el ) => {
+					return timer.querySelector( '.timer__' + el );
+				});
+				// returns an object of dom elements with keys from the elementNames array.
+				return Object.assign( ...elementNames.map( ( n, i ) => ( { [n] : domElements[i] } ) ) );
+			}
+
+			const setTimer = ( id ) => {
+				const timer = getTimer( id );
+
+				timer.hour.innerHTML = ( '0' + settings.hours ).slice( -2 );
+				timer.min.innerHTML = ( '0' + settings.minutes ).slice( -2 );
+				timer.sec.innerHTML = ( '0' + settings.seconds ).slice( -2 );
+				timer.plus.querySelector('span').innerHTML = settings.add;
+				timer.minus.querySelector('span').innerHTML = settings.add;
+
+				timer.run.addEventListener( 'click', {
+					handleEvent(event) {
+						runTimer( 'timer' );
+					}
+				} );
+				timer.stop.addEventListener( 'click', {
+					handleEvent(event) {
+						clearInterval( init );
+						timer.run.disabled = false;
+					}
+				} );
+				timer.clear.addEventListener( 'click', {
+					handleEvent(event) {
+						clearTimer( 'timer' );
+					}
+				} );
+				timer.plus.addEventListener( 'click', {
+					handleEvent(event) {
+						changeTime( 'timer', 'plus' );
+					}
+				} );
+				timer.minus.addEventListener( 'click', {
+					handleEvent(event) {
+						changeTime( 'timer', 'minus' );
+					}
+				} );
+			}
+
+			let countDown = ( time ) => {
+				const total = parseInt( time ) - 1; // substract 1 sec
+				const seconds = Math.floor( total % 60 );
+				const minutes = Math.floor( ( total / 60 ) % 60);
+				const hours = Math.floor( total / ( 60 * 60 ) );
+				
+				return {
+					total,
+					hours,
+					minutes,
+					seconds
+				};
+			}
+
+			let getTime = ( hourEl, minEl, secEl ) => {
+				const hour = parseInt( hourEl.innerHTML );
+				const min = parseInt( minEl.innerHTML );
+				const sec = parseInt( secEl.innerHTML );
+				const time = sec + 60 * min + 60 * 60 * hour;
+				return time;
+			}
+
+			const updateTimer = ( timer ) => {
+				const startTime = getTime( timer.hour, timer.min, timer.sec );
+				const time = countDown( startTime );
+				timer.hour.innerHTML = ( time.hours > 0 ) ? ( '0' + time.hours ).slice( -2 ) : '00';
+				timer.min.innerHTML  = ( time.minutes > 0 ) ? ( '0' + time.minutes ).slice( -2 ) : '00';
+				timer.sec.innerHTML  = ( time.seconds > 0 ) ? ( '0' + time.seconds ).slice( -2 ) : '00';
+
+				if ( time.total <= 0 ) {
+					clearInterval( init );
+					timer.message.innerHTML = settings.text;
+					timer.run.disabled = false;
+				}
+			}
+
+			const runTimer = ( id ) => {
+				const timer = getTimer( id );
+				timer.message.innerHTML = '';
+				timer.run.disabled = true; // to prevent repeatedly initializing the timer when it is already running.
+
+				updateTimer( timer ); // to prevent 1sec delay after clicking the button.
+
+				init = setInterval( () => {
+					updateTimer( timer );
+				}, 1000 );
+			}
+
+			const clearTimer = ( id ) => {
+				const timer = getTimer( id );
+
+				clearInterval( init );
+				timer.hour.innerHTML = '00';
+				timer.min.innerHTML = '00';
+				timer.sec.innerHTML = '00';
+				timer.message.innerHTML = '';
+				timer.run.disabled = false;
+			}
+
+			const changeTime = ( id, action ) => {
+				const timer = getTimer( id );
+
+				const additionalTime = parseInt( timer.plus.querySelector( 'span' ).innerHTML );
+				const initialTime = getTime( timer.hour, timer.min, timer.sec );
+				const time = ( 'plus' == action ) ? initialTime + additionalTime : initialTime - additionalTime;
+
+				const seconds = Math.floor( time % 60 );
+				const minutes = Math.floor( ( time / 60 ) % 60);
+				const hours = Math.floor( time / ( 60 * 60 ) );
+
+				// clearInterval( init );
+				timer.hour.innerHTML = ( hours > 0 ) ? ( '0' + hours ).slice( -2 ) : '00';
+				timer.min.innerHTML  = ( minutes > 0 ) ? ( '0' + minutes ).slice( -2 ) : '00';
+				timer.sec.innerHTML  = ( seconds > 0 ) ? ( '0' + seconds ).slice( -2 ) : '00';
+			}
+			
+			setTimer( 'timer' );
+			
+		</script>
+
+	</body>
+</html>
